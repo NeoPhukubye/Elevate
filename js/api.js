@@ -86,7 +86,7 @@ export function authHeaders() {
 }
 
 export function authed(path, options = {}) {
-  return request(path, { ...options, headers: { ...authHeaders(), ...(options.headers || {}) } });
+  return call(path, { ...options, headers: { ...authHeaders(), ...(options.headers || {}) } });
 }
 
 export function apiBase() { return API_BASE; }
