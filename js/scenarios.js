@@ -60,22 +60,13 @@ export function renderScenarioDetail(scenario, onChoice) {
 }
 
 export async function submitChoice(scenarioId, choiceIndex, timeTakenSec) {
-  const sessionId = store.get("currentSession");
-  if (!sessionId) {
-    const started = await authed("/scenarios/" + encodeURIComponent(scenarioId) + "/start", {
-      method: "POST",
-      body: JSON.stringify({ userChoice: String(choiceIndex), timeTakenSec: timeTakenSec || 0 }),
-    });
-    const sid = started.data.session.id;
-    store.set("currentSession", sid);
-    const result = await authed("/sessions/" + sid + "/complete", {
-      method: "POST",
-      body: JSON.stringify({ scenarioId, userChoice: String(choiceIndex), timeTakenSec: timeTakenSec || 0 }),
-    });
-    store.set("currentSession", null);
-    return result.data;
-  }
-  const result = await authed("/sessions/" + sessionId + "/complete", {
+  const started = await authed("/scenarios/" + encodeURIComponent(scenarioId) + "/start", {
+    method: "POST",
+    body: JSON.stringify({ userChoice: String(choiceIndex), timeTakenSec: timeTakenSec || 0 }),
+  });
+  const sid = started.data.session.id;
+  store.set("currentSession", sid);
+  const result = await authed("/sessions/" + sid + "/complete", {
     method: "POST",
     body: JSON.stringify({ scenarioId, userChoice: String(choiceIndex), timeTakenSec: timeTakenSec || 0 }),
   });
@@ -83,21 +74,38 @@ export async function submitChoice(scenarioId, choiceIndex, timeTakenSec) {
   return result;
 }
 
-export function renderFeedback(feedback) {
+export function renderFeedback(feedback, sessionId, scenarioId) {
   const el = document.createElement("div");
-  el.className = "card feedback-card good";
   el.innerHTML = `
-    <h2 style="margin:0 0 12px;">Your feedback</h2>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-      <div style="font-size:2rem;font-weight:800;">${feedback.score}</div>
-      <div class="skill-bar" style="flex:1;"><span style="width:${feedback.score}%"></span></div>
+    <a href="#/scenarios" class="btn ghost" style="margin-bottom:16px;">Back to scenarios</a>
+    <h1 style="margin:0 0 6px;">Your feedback</h1>
+    <div style="display:flex;align-items:center;gap:12px;margin:16px 0 20px;">
+      <div style="font-size:2.5rem;font-weight:800;color:var(--primary);">${feedback.score}</div>
+      <div class="skill-bar" style="flex:1;"><span style="width:${feedback.score}%;"></span></div>
       <span class="muted">/100</span>
     </div>
-    <p style="margin:0 0 10px;"><strong>What went well:</strong> ${escapeHtml(simpleText(feedback.whatWentWell))}</p>
-    <p style="margin:0 0 10px;"><strong>What to improve:</strong> ${escapeHtml(simpleText(feedback.whatToImprove))}</p>
-    <p style="margin:0 0 10px;"><strong>Next steps:</strong> ${escapeHtml(simpleText(feedback.nextSteps))}</p>
-    ${feedback.retryAdvice ? `<p style="margin:0 0 16px;"><strong>Try again:</strong> ${escapeHtml(simpleText(feedback.retryAdvice))}</p>` : ""}
-    <button class="btn" data-retry>Try this scenario again</button>
+    <div class="card feedback-card good" style="margin-bottom:14px;">
+      <h2 style="margin:0 0 8px;">What went well</h2>
+      <p style="margin:0;">${escapeHtml(simpleText(feedback.whatWentWell))}</p>
+    </div>
+    <div class="card feedback-card improve" style="margin-bottom:14px;">
+      <h2 style="margin:0 0 8px;">What to improve</h2>
+      <p style="margin:0;">${escapeHtml(simpleText(feedback.whatToImprove))}</p>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <h2 style="margin:0 0 8px;">Next steps</h2>
+      <p style="margin:0;">${escapeHtml(simpleText(feedback.nextSteps))}</p>
+    </div>
+    ${feedback.retryAdvice ? `
+      <div class="card" style="margin-bottom:20px;">
+        <h2 style="margin:0 0 8px;">Try again</h2>
+        <p style="margin:0;">${escapeHtml(simpleText(feedback.retryAdvice))}</p>
+      </div>
+    ` : ""}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn" data-retry>Try this scenario again</button>
+      <button class="btn accent" data-pdf>Download PDF report</button>
+    </div>
   `;
   return el;
 }
