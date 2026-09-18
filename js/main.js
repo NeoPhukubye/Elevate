@@ -130,10 +130,10 @@ function renderPractice() {
 function renderReport() {
   if (!report) { location.hash = "#/interview"; return; }
   app.innerHTML = "";
-  app.appendChild(renderInterviewReport(report, {
+  app.appendChild(renderInterviewReport(report));
+  wireInterviewReport(app, report, {
     onRestart: () => { report = null; location.hash = "#/interview"; },
-  }));
-  wireInterviewReport(app, report);
+  });
 }
 
 window.addEventListener("hashchange", () => renderPage(location.hash));
