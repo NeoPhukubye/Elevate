@@ -12,87 +12,89 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
+  id            String                   @id @default(cuid())
+  email         String                   @unique
   passwordHash  String
   displayName   String?
   bio           String?
   avatarUrl     String?
-  ageGroup      String?   // e.g. "16-19", "20-24"
+  ageGroup      String?
   location      String?
-  language      String    @default("en")
-  accessibility AccessibilityPreferences? @relation(fields: [accessibilityId], references: [id])
-  accessibilityId String?   @unique
-  interests     String[]  // career interest tags
+  language      String                   @default("en")
+  interests     String[]
   goals         String[]
-  skills        Skill[]   @relation("userSkills")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  careerPathways  CareerPathway[]
+  accessibility AccessibilityPreferences? @relation("UserAccessibility")
+  accessibilityId String?                  @unique
+  skills        Skill[]                  @relation("userSkills")
+  careerPathways CareerPathway[]
   scenarioSessions ScenarioSession[]
-  portfolios      Portfolio[]
+  portfolios    Portfolio[]
   recommendations Recommendation[]
-  feedbacks      Feedback[]
-  progress       ProgressEntry[]
-  integrations   Integration[]
+  progress      ProgressEntry[]
+  integrations  Integration[]
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
 
   @@index([email])
 }
 
 model AccessibilityPreferences {
-  id                    String   @id @default(cuid())
-  userId                String   @unique
-  screenReader          Boolean  @default(false)
-  keyboardNavigation    Boolean  @default(true)
-  fontSize              String   @default("medium") // small, medium, large, xlarge
-  highContrast           Boolean  @default(false)
-  captions              Boolean  @default(false)
-  transcripts            Boolean  @default(false)
-  reducedMotion         Boolean  @default(false)
-  simpleLanguage         Boolean  @default(false)
-  userIdUser            User     @relation(fields: [userId], references: [id])
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  screenReader    Boolean  @default(false)
+  keyboardNavigation Boolean @default(true)
+  fontSize        String   @default("medium")
+  highContrast    Boolean  @default(false)
+  captions        Boolean  @default(false)
+  transcripts      Boolean  @default(false)
+  reducedMotion   Boolean  @default(false)
+  simpleLanguage  Boolean  @default(false)
+  user            User     @relation("UserAccessibility", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Skill {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  category    String   // communication, teamwork, problem-solving, adaptability, time-management
+  id          String           @id @default(cuid())
+  name        String           @unique
+  category    String
   description String?
-  users       User[]   @relation("userSkills")
+  users       User[]           @relation("userSkills")
   scenarios   ScenarioSkill[]
+  progress    ProgressEntry[]
+
+  @@index([category])
 }
 
 model CareerPathway {
-  id          String    @id @default(cuid())
+  id          String      @id @default(cuid())
   name        String
   industry    String
   description String?
-  level       String    @default("entry") // entry, mid, senior
+  level       String      @default("entry")
   skills      String[]
   scenarios   Scenario[]
   users       User[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([industry])
 }
 
 model Scenario {
-  id            String          @id @default(cuid())
-  title         String
-  description   String
-  industry      String
-  difficulty    String          @default("beginner") // beginner, intermediate, advanced
-  category      String          // interview, meeting, teamwork, communication, problem-solving, conflict-resolution, customer-service
-  prompt        String
-  options       Json            // multiple-choice options
+  id          String           @id @default(cuid())
+  title       String
+  description String
+  industry    String
+  difficulty  String           @default("beginner")
+  category    String
+  prompt      String
+  options     Json
   correctAnswer String?
-  tips          String[]
-  skills        ScenarioSkill[]
-  pathways      CareerPathway[] @relation
-  feedbacks     Feedback[]
-  sessions      ScenarioSession[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  tips        String[]
+  skills      ScenarioSkill[]
+  pathways    CareerPathway[]
+  sessions    ScenarioSession[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@index([industry])
   @@index([category])
@@ -118,24 +120,24 @@ model ScenarioSession {
   aiFeedback    String?
   completedAt   DateTime?
   createdAt     DateTime  @default(now())
-  user         User      @relation(fields: [userId], references: [id])
-  scenario     Scenario  @relation(fields: [scenarioId], references: [id])
-  feedback     Feedback?
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenario      Scenario  @relation(fields: [scenarioId], references: [id])
+  feedback      Feedback?
 
   @@index([userId])
   @@index([scenarioId])
 }
 
 model Feedback {
-  id            String    @id @default(cuid())
-  sessionId     String    @unique
+  id            String           @id @default(cuid())
+  sessionId     String           @unique
   whatWentWell  String
   whatToImprove String
   nextSteps     String
   retryAdvice   String?
   score         Float?
-  createdAt     DateTime  @default(now())
-  session       ScenarioSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt     DateTime         @default(now())
+  session       ScenarioSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
 model ProgressEntry {
@@ -144,7 +146,7 @@ model ProgressEntry {
   skillId   String
   score     Float
   date      DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   skill     Skill    @relation(fields: [skillId], references: [id])
 
   @@index([userId, skillId])
@@ -156,28 +158,28 @@ model Portfolio {
   userId      String
   title       String
   description String?
-  type        String   // scenario, certificate, project, qualification
+  type        String
   evidenceUrl String?
   skillIds    String[]
   isPublic    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isPublic])
 }
 
 model Recommendation {
-  id            String   @id @default(cuid())
-  userId        String
-  type          String   // scenario, skill, pathway
-  targetId      String
-  reason        String
-  priority      Int      @default(1)
-  dismissed     Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  user          User     @relation(fields: [userId], references: [id])
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  targetId    String
+  reason      String
+  priority    Int      @default(1)
+  dismissed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, dismissed])
 }
@@ -185,7 +187,7 @@ model Recommendation {
 model Integration {
   id            String   @id @default(cuid())
   userId        String
-  provider      String   // github, linkedin, cv
+  provider      String
   externalId    String?
   tokenEncrypted String?
   metadata      Json?
