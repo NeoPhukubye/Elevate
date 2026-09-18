@@ -1,6 +1,6 @@
 // Elevate frontend — router + entry point
-import { loadScenarios, renderScenarioCard, renderScenarioDetail, submitChoice, renderFeedback } from "./scenarios.js";
-import { renderDashboard, loadSkills } from "./dashboard.js";
+import { loadScenarios, loadScenario, renderScenarioCard, renderScenarioDetail, submitChoice, renderFeedback } from "./scenarios.js";
+import { renderDashboard, loadSkills, loadProgress } from "./dashboard.js";
 import { openFeedbackPdf } from "./pdf.js";
 import { apiBase } from "./api.js";
 import { escapeHtml, store } from "./app.js";
@@ -69,21 +69,27 @@ async function renderPage(hash) {
 async function onChoice(scenarioId, choiceIndex) {
   const started = Date.now();
   const timeTaken = Math.max(1, Math.round((Date.now() - started) / 1000));
-  const result = await submitChoice(scenarioId, parseInt(choiceIndex, 10), timeTaken);
-  app.innerHTML = "";
-  app.appendChild(renderFeedback(result.feedback, result.sessionId, scenarioId));
-  const retry = app.querySelector("[data-retry]");
-  if (retry) retry.addEventListener("click", () => { location.hash = "#/scenarios/" + scenarioId; });
-  const pdfBtn = app.querySelector("[data-pdf]");
-  if (pdfBtn) pdfBtn.addEventListener("click", () => {
-    openFeedbackPdf({
-      scenario: { title: scenarioId, category: "Scenario" },
-      feedback: result.feedback,
-      score: result.feedback.score,
-      date: new Date().toLocaleDateString(),
-      userName: "Guest User",
+  try {
+    const result = await submitChoice(scenarioId, parseInt(choiceIndex, 10), timeTaken);
+    // Clear the page only once the feedback is in hand, so a failed request
+    // leaves the scenario on screen instead of a blank one.
+    app.innerHTML = "";
+    app.appendChild(renderFeedback(result.feedback, result.sessionId, scenarioId));
+    const retry = app.querySelector("[data-retry]");
+    if (retry) retry.addEventListener("click", () => { location.hash = "#/scenarios/" + scenarioId; });
+    const pdfBtn = app.querySelector("[data-pdf]");
+    if (pdfBtn) pdfBtn.addEventListener("click", () => {
+      openFeedbackPdf({
+        scenario: { title: scenarioId, category: "Scenario" },
+        feedback: result.feedback,
+        score: result.feedback.score,
+        date: new Date().toLocaleDateString(),
+        userName: "Guest User",
+      });
     });
-  });
+  } catch (e) {
+    app.innerHTML = `<div class="card"><h2>Unable to submit your response</h2><p class="muted">${escapeHtml(e.message)}</p><a href="#/scenarios/${escapeHtml(scenarioId)}" class="btn ghost">Back to the scenario</a></div>`;
+  }
 }
 
 window.addEventListener("hashchange", () => renderPage(location.hash));
