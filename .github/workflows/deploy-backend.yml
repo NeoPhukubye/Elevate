@@ -24,17 +24,24 @@ jobs:
             exit 1
           fi
           echo "render.yaml present"
-      - name: Check Render secrets
+      - name: Validate Render secrets
         env:
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
+          missing=0
           if [ -z "$RENDER_SERVICE_ID" ]; then
-            echo "::warning::RENDER_SERVICE_ID is not configured. Add it in Settings -> Secrets and variables -> Actions."
+            echo "::error::RENDER_SERVICE_ID is not configured. Add it in Settings -> Secrets and variables -> Actions."
+            missing=1
           fi
           if [ -z "$RENDER_API_KEY" ]; then
-            echo "::warning::RENDER_API_KEY is not configured. Add it in Settings -> Secrets and variables -> Actions."
+            echo "::error::RENDER_API_KEY is not configured. Add it in Settings -> Secrets and variables -> Actions."
+            missing=1
           fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Render secrets present"
       - name: Deploy to Render
         uses: JorgeLNJunior/render-deploy@v1.5.0
         with:
