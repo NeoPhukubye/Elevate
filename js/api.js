@@ -4,7 +4,9 @@
 
 import { localListScenarios, localGetScenario, localFeedback, localSkills } from "./local.js";
 
-const API_BASE = (window.ELEVATE_API_URL || "https://elevate-backend-0gv6.onrender.com") + "/api/v1";
+// Static by default: with no ELEVATE_API_URL set, the client uses the built-in
+// local data below. Set window.ELEVATE_API_URL to point at the real backend.
+const API_BASE = (window.ELEVATE_API_URL || "") + "/api/v1";
 
 let offline = false;
 export function isOffline() { return offline; }
@@ -62,7 +64,8 @@ async function call(path, options = {}) {
     offline = false;
     return data;
   } catch (e) {
-    if (isOffline()) throw e; // a real backend error (e.g. 404) still propagates below
+    // Fall back to the built-in data set. If this route has no local equivalent
+    // (local() returns null), the original network error still propagates.
     offline = true;
     const mock = local(path, options);
     if (mock.data === null) throw e;
