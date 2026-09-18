@@ -321,6 +321,12 @@ export function downloadInterviewPdf(report, filename = "elevate-interview.pdf")
 }
 
 export function openInterviewPdf(report, filename = "elevate-interview.pdf") {
+  // jsPDF comes from a CDN <script>. If that did not load (offline, blocked, or
+  // no network) the button would otherwise fail silently, so say what happened.
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    window.alert("The PDF library did not load, so the download is unavailable. Your report is still on screen — refresh the page with an internet connection to download it.");
+    return;
+  }
   const doc = generateInterviewPdf(report);
   const blob = doc.output("blob");
   const url = URL.createObjectURL(blob);
