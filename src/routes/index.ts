@@ -59,20 +59,20 @@ router.get("/scenarios/:id", async (req, res, next) => {
   }
 });
 
-router.post("/scenarios/:id/start", authenticate, async (req: AuthenticatedRequest, res, next) => {
+router.post("/scenarios/:id/start", async (req, res, next) => {
   try {
-    const { userChoice, timeTakenSec } = req.body;
-    const result = await startScenario(req.user!.id, req.params.id, userChoice, timeTakenSec);
+    const { userChoice, timeTakenSec, userId } = req.body;
+    const result = await startScenario(userId || "guest", req.params.id, userChoice, timeTakenSec);
     res.json({ success: true, data: result });
   } catch (e) {
     next(e);
   }
 });
 
-router.post("/sessions/:sessionId/complete", authenticate, async (req: AuthenticatedRequest, res, next) => {
+router.post("/sessions/:sessionId/complete", async (req, res, next) => {
   try {
-    const { scenarioId, userChoice, timeTakenSec } = req.body;
-    const result = await completeScenario(req.user!.id, req.params.sessionId, scenarioId, userChoice, timeTakenSec);
+    const { scenarioId, userChoice, timeTakenSec, userId } = req.body;
+    const result = await completeScenario(userId || "guest", req.params.sessionId, scenarioId, userChoice, timeTakenSec);
     res.json({ success: true, data: result });
   } catch (e) {
     next(e);

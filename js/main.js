@@ -1,20 +1,16 @@
 // Elevate frontend — router + entry point
-import { currentUser } from "./auth.js";
 import { loadScenarios, renderScenarioCard, renderScenarioDetail, submitChoice, renderFeedback } from "./scenarios.js";
-import { renderDashboard, loadProgress, loadSkills } from "./dashboard.js";
+import { renderDashboard, loadSkills } from "./dashboard.js";
 import { openFeedbackPdf } from "./pdf.js";
 import { escapeHtml, store } from "./app.js";
 
 const app = document.getElementById("app");
 
 function nav() {
-  const name = currentUser.name();
   return `
     <nav class="links">
       <a href="#/scenarios">Scenarios</a>
       <a href="#/progress">Progress</a>
-      <span class="muted" style="margin-left:18px;">${escapeHtml(name)}</span>
-      ${!currentUser.guest ? `<button class="btn ghost" id="logout" style="margin-left:8px;">Sign out</button>` : `<a href="#/scenarios" class="btn ghost" style="margin-left:8px;">Sign in to save progress</a>`}
     </nav>
   `;
 }
@@ -27,8 +23,6 @@ function renderNav() {
   const wrap = document.createElement("div");
   wrap.innerHTML = nav();
   header.appendChild(wrap.firstChild);
-  const logout = header.querySelector("#logout");
-  if (logout) logout.addEventListener("click", () => currentUser.logout());
 }
 
 async function renderPage(hash) {
@@ -78,19 +72,10 @@ async function onChoice(scenarioId, choiceIndex) {
       feedback: result.feedback,
       score: result.feedback.score,
       date: new Date().toLocaleDateString(),
-      userName: currentUser.name(),
+      userName: "Guest User",
     });
   });
 }
 
-function renderAuth() {
-  // Sign-in is optional — redirect to scenarios instead of showing the auth form
-  location.hash = "#/scenarios";
-}
-
 window.addEventListener("hashchange", () => renderPage(location.hash));
-window.addEventListener("load", async () => {
-  await currentUser.load();
-  renderNav();
-  renderPage(location.hash || "#/scenarios");
-});
+window.addEventListener("load", () => renderPage(location.hash || "#/scenarios"));

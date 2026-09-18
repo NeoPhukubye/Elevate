@@ -1,10 +1,9 @@
 // Elevate frontend — progress dashboard
-import { api, authed } from "./api.js";
-import { escapeHtml, skillColor } from "./app.js";
+import { api } from "./api.js";
+import { escapeHtml, skillColor, store } from "./app.js";
 
 export async function loadProgress() {
-  const res = await authed("/progress");
-  return res.data;
+  return store.get("progress", []);
 }
 
 export async function loadSkills() {
@@ -49,7 +48,7 @@ export function renderDashboard(progress, skills) {
     <h1 style="margin:0 0 6px;">Your progress</h1>
     <p class="muted" style="margin:0 0 24px;">See how you are developing across key workplace skills.</p>
     ${rows.join("") || `<p class="muted">No progress yet. Complete a scenario to start tracking.</p>`}
-    <div class="card" style="background:var(--bg-soft);color:#fff;">
+    <div class="card" style="background:var(--bg-soft);color:var(--text);">
       <h2 style="margin:0 0 12px;">Progress summary (text)</h2>
       <p style="margin:0;">${textSummary.length ? textSummary.join(" ") : "Complete a scenario to start building your progress."}</p>
     </div>

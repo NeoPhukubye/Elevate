@@ -1,5 +1,5 @@
 // Elevate frontend — scenario list + detail + practice flow
-import { api, authed, token } from "./api.js";
+import { api } from "./api.js";
 import { escapeHtml, store, simpleText } from "./app.js";
 
 export async function loadScenarios() {
@@ -60,30 +60,16 @@ export function renderScenarioDetail(scenario, onChoice) {
 }
 
 export async function submitChoice(scenarioId, choiceIndex, timeTakenSec) {
-  if (!token()) {
-    // Guest mode — return mock feedback without saving to the database
-    return {
-      data: {
-        sessionId: "guest",
-        feedback: {
-          whatWentWell: "You completed the scenario. Sign in to save your progress and get personalised feedback.",
-          whatToImprove: "Think about why you chose that option and what a colleague might have done differently.",
-          nextSteps: "Try the scenario again with what you learned.",
-          retryAdvice: "Re-read the situation and the tips before trying again.",
-          score: 50,
-        },
-      },
-    };
-  }
-  const started = await authed("/scenarios/" + encodeURIComponent(scenarioId) + "/start", {
-    method: "POST",
-    body: JSON.stringify({ userChoice: String(choiceIndex), timeTakenSec: timeTakenSec || 0 }),
+  // Generate AI feedback locally without requiring authentication
+  const res = await api.post("/scenarios/" + encodeURIComponent(scenarioId) + "/start", {
+    userChoice: String(choiceIndex),
+    timeTakenSec: timeTakenSec || 0,
   });
-  const sid = started.data.session.id;
-  store.set("currentSession", sid);
-  const result = await authed("/sessions/" + sid + "/complete", {
-    method: "POST",
-    body: JSON.stringify({ scenarioId, userChoice: String(choiceIndex), timeTakenSec: timeTakenSec || 0 }),
+  const sid = res.data.session.id;
+  const result = await api.post("/sessions/" + sid + "/complete", {
+    scenarioId,
+    userChoice: String(choiceIndex),
+    timeTakenSec: timeTakenSec || 0,
   });
   store.set("currentSession", null);
   return result;
