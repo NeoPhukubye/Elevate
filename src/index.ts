@@ -45,6 +45,17 @@ app.get("/health", async (_req, res) => {
   }
 });
 
+// Root route — this is a backend API, not the frontend
+app.get("/", (_req, res) => {
+  res.json({
+    name: "Elevate Backend",
+    status: "running",
+    api: "/api/v1",
+    health: "/health",
+    message: "The frontend is a separate static site. Set ELEVATE_API_URL to this URL in the frontend.",
+  });
+});
+
 // DB routes only work when connected
 app.use("/api/v1", (req, res, next) => {
   if (!dbConnected && req.path !== "/health") {
