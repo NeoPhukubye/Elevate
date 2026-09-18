@@ -31,11 +31,11 @@ jobs:
         run: |
           missing=0
           if [ -z "$RENDER_SERVICE_ID" ]; then
-            echo "::error::RENDER_SERVICE_ID is not configured. Add it in Settings -> Secrets and variables -> Actions."
+            echo "::error::RENDER_SERVICE_ID is not configured."
             missing=1
           fi
           if [ -z "$RENDER_API_KEY" ]; then
-            echo "::error::RENDER_API_KEY is not configured. Add it in Settings -> Secrets and variables -> Actions."
+            echo "::error::RENDER_API_KEY is not configured."
             missing=1
           fi
           if [ "$missing" -ne 0 ]; then
@@ -48,5 +48,5 @@ jobs:
           service_id: ${{ secrets.RENDER_SERVICE_ID }}
           api_key: ${{ secrets.RENDER_API_KEY }}
           clear_cache: false
-          wait_deploy: true
+          wait_deploy: false
           github_deployment: false
