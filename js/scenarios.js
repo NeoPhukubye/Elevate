@@ -60,6 +60,21 @@ export function renderScenarioDetail(scenario, onChoice) {
 }
 
 export async function submitChoice(scenarioId, choiceIndex, timeTakenSec) {
+  if (!token()) {
+    // Guest mode — return mock feedback without saving to the database
+    return {
+      data: {
+        sessionId: "guest",
+        feedback: {
+          whatWentWell: "You completed the scenario. Sign in to save your progress and get personalised feedback.",
+          whatToImprove: "Think about why you chose that option and what a colleague might have done differently.",
+          nextSteps: "Try the scenario again with what you learned.",
+          retryAdvice: "Re-read the situation and the tips before trying again.",
+          score: 50,
+        },
+      },
+    };
+  }
   const started = await authed("/scenarios/" + encodeURIComponent(scenarioId) + "/start", {
     method: "POST",
     body: JSON.stringify({ userChoice: String(choiceIndex), timeTakenSec: timeTakenSec || 0 }),

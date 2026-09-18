@@ -8,13 +8,13 @@ import { escapeHtml, store } from "./app.js";
 const app = document.getElementById("app");
 
 function nav() {
-  if (!currentUser.user) return "";
+  const name = currentUser.name();
   return `
     <nav class="links">
       <a href="#/scenarios">Scenarios</a>
       <a href="#/progress">Progress</a>
-      <a href="#/profile">Profile</a>
-      <button class="btn ghost" id="logout">Logout</button>
+      <span class="muted" style="margin-left:18px;">${escapeHtml(name)}</span>
+      ${!currentUser.guest ? `<button class="btn ghost" id="logout" style="margin-left:8px;">Sign out</button>` : `<a href="#/scenarios" class="btn ghost" style="margin-left:8px;">Sign in to save progress</a>`}
     </nav>
   `;
 }
@@ -32,10 +32,6 @@ function renderNav() {
 }
 
 async function renderPage(hash) {
-  if (!currentUser.user) {
-    renderAuth();
-    return;
-  }
   renderNav();
   if (hash === "#/progress") {
     const [progress, skills] = await Promise.all([loadProgress(), loadSkills()]);
@@ -49,6 +45,10 @@ async function renderPage(hash) {
   } else {
     const scenarios = await loadScenarios();
     app.innerHTML = "";
+    const hero = document.createElement("div");
+    hero.className = "hero";
+    hero.innerHTML = `<h1>Welcome to Elevate</h1><p class="lead">A workforce-readiness companion that helps young people bridge the gap between education and employment.</p>`;
+    app.appendChild(hero);
     const heading = document.createElement("h1");
     heading.textContent = "Explore career scenarios";
     app.appendChild(heading);
@@ -84,64 +84,13 @@ async function onChoice(scenarioId, choiceIndex) {
 }
 
 function renderAuth() {
-  app.innerHTML = `
-    <div class="hero">
-      <h1>Welcome to Elevate</h1>
-      <p class="lead">A workforce-readiness companion that helps young people bridge the gap between education and employment.</p>
-    </div>
-    <div style="max-width:480px;margin:0 auto;">
-      <div class="card" style="margin-bottom:16px;">
-        <h2 style="margin:0 0 14px;">Sign in</h2>
-        <form id="login-form" style="display:flex;flex-direction:column;gap:10px;">
-          <input id="login-email" type="email" placeholder="Email" required style="padding:10px;border:1px solid var(--border);border-radius:8px;" />
-          <input id="login-password" type="password" placeholder="Password" required style="padding:10px;border:1px solid var(--border);border-radius:8px;" />
-          <button type="submit" class="btn">Sign in</button>
-        </form>
-        <p id="login-error" class="muted" style="color:var(--danger);margin:10px 0 0;"></p>
-      </div>
-      <div class="card">
-        <h2 style="margin:0 0 14px;">Create account</h2>
-        <form id="register-form" style="display:flex;flex-direction:column;gap:10px;">
-          <input id="reg-email" type="email" placeholder="Email" required style="padding:10px;border:1px solid var(--border);border-radius:8px;" />
-          <input id="reg-password" type="password" placeholder="Password (min 8 characters)" required style="padding:10px;border:1px solid var(--border);border-radius:8px;" />
-          <input id="reg-name" type="text" placeholder="Display name (optional)" style="padding:10px;border:1px solid var(--border);border-radius:8px;" />
-          <button type="submit" class="btn secondary">Create account</button>
-        </form>
-        <p id="reg-error" class="muted" style="color:var(--danger);margin:10px 0 0;"></p>
-      </div>
-    </div>
-  `;
-
-  const loginForm = app.querySelector("#login-form");
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const err = app.querySelector("#login-error");
-    err.textContent = "";
-    try {
-      await currentUser.login(loginForm["login-email"].value, loginForm["login-password"].value);
-      renderPage(location.hash || "#/scenarios");
-    } catch (err2) {
-      err.textContent = err2.message;
-    }
-  });
-
-  const regForm = app.querySelector("#register-form");
-  regForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const err = app.querySelector("#reg-error");
-    err.textContent = "";
-    try {
-      await currentUser.register(regForm["reg-email"].value, regForm["reg-password"].value, regForm["reg-name"].value);
-      renderPage(location.hash || "#/scenarios");
-    } catch (err2) {
-      err.textContent = err2.message;
-    }
-  });
+  // Sign-in is optional — redirect to scenarios instead of showing the auth form
+  location.hash = "#/scenarios";
 }
 
 window.addEventListener("hashchange", () => renderPage(location.hash));
 window.addEventListener("load", async () => {
   await currentUser.load();
-  if (currentUser.user) renderNav();
+  renderNav();
   renderPage(location.hash || "#/scenarios");
 });

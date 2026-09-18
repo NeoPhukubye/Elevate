@@ -4,41 +4,65 @@ import { applyAccessibility, initials } from "./app.js";
 
 export const currentUser = {
   user: null,
+  guest: false,
+
   async login(email, password) {
     const res = await api.post("/auth/login", { email, password });
     setToken(res.data.token);
     this.user = res.data.user;
+    this.guest = false;
     await this.load();
     return this.user;
   },
+
   async register(email, password, displayName) {
     const res = await api.post("/auth/register", { email, password, displayName });
     setToken(res.data.token);
     this.user = res.data.user;
+    this.guest = false;
     await this.load();
     return this.user;
   },
+
+  enterAsGuest() {
+    this.user = { id: "guest", email: null, displayName: "Guest User" };
+    this.guest = true;
+    setToken(null);
+    return this.user;
+  },
+
   async load() {
-    if (!token()) { this.user = null; return null; }
+    if (!token()) {
+      // Auto-enter as guest so the app works without sign-in
+      this.user = { id: "guest", email: null, displayName: "Guest User" };
+      this.guest = true;
+      return this.user;
+    }
     try {
       const res = await authed("/auth/me");
       this.user = res.data;
+      this.guest = false;
       if (this.user.accessibility) applyAccessibility(this.user.accessibility);
       return this.user;
     } catch {
       setToken(null);
-      this.user = null;
-      return null;
+      this.user = { id: "guest", email: null, displayName: "Guest User" };
+      this.guest = true;
+      return this.user;
     }
   },
+
   logout() {
     setToken(null);
     this.user = null;
+    this.guest = false;
+    this.enterAsGuest();
     window.location.href = "/";
   },
+
   avatar() {
-    return this.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(this.user?.displayName || this.user?.email || "?")}&background=6366f1&color=fff&size=128`;
+    return this.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(this.user?.displayName || this.user?.email || "?")}&background=8b7bff&color=fff&size=128`;
   },
-  name() { return this.user?.displayName || this.user?.email || "User"; },
+  name() { return this.user?.displayName || this.user?.email || "Guest User"; },
   initials() { return initials(this.name()); },
 };
