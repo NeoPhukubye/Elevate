@@ -142,4 +142,4 @@ export const recommendationRepo = {
 };
 
 export type ScenarioWithSkills = Awaited<ReturnType<typeof scenarioRepo.findById>>;
-export type ProgressSummary = Awaited<ReturnType<progressRepo.listByUser>>;
+export type ProgressSummary = Awaited<ReturnType<typeof progressRepo.listByUser>>;

@@ -94,7 +94,7 @@ export async function completeScenario(
       whatToImprove: feedback.whatToImprove,
       nextSteps: feedback.nextSteps,
       retryAdvice: feedback.retryAdvice ?? undefined,
-      score: feedback.score,
+      score: feedback.score ?? 0,
     },
   };
 }
