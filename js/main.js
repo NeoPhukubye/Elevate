@@ -2,6 +2,7 @@
 import { currentUser } from "./auth.js";
 import { loadScenarios, renderScenarioCard, renderScenarioDetail, submitChoice, renderFeedback } from "./scenarios.js";
 import { renderDashboard, loadProgress, loadSkills } from "./dashboard.js";
+import { openFeedbackPdf } from "./pdf.js";
 import { escapeHtml, store } from "./app.js";
 
 const app = document.getElementById("app");
@@ -52,8 +53,8 @@ async function renderPage(hash) {
     heading.textContent = "Explore career scenarios";
     app.appendChild(heading);
     const sub = document.createElement("p");
-    sub.className = "muted";
-    sub.textContent = "Practise realistic workplace situations in a safe environment.";
+    sub.className = "lead";
+    sub.textContent = "Practise realistic workplace situations in a safe environment and get AI feedback.";
     app.appendChild(sub);
     const grid = document.createElement("div");
     grid.className = "grid two";
@@ -67,16 +68,28 @@ async function onChoice(scenarioId, choiceIndex) {
   const timeTaken = Math.max(1, Math.round((Date.now() - started) / 1000));
   const result = await submitChoice(scenarioId, parseInt(choiceIndex, 10), timeTaken);
   app.innerHTML = "";
-  app.appendChild(renderFeedback(result.feedback));
+  app.appendChild(renderFeedback(result.feedback, result.sessionId, scenarioId));
   const retry = app.querySelector("[data-retry]");
   if (retry) retry.addEventListener("click", () => { location.hash = "#/scenarios/" + scenarioId; });
+  const pdfBtn = app.querySelector("[data-pdf]");
+  if (pdfBtn) pdfBtn.addEventListener("click", () => {
+    openFeedbackPdf({
+      scenario: { title: scenarioId, category: "Scenario" },
+      feedback: result.feedback,
+      score: result.feedback.score,
+      date: new Date().toLocaleDateString(),
+      userName: currentUser.name(),
+    });
+  });
 }
 
 function renderAuth() {
   app.innerHTML = `
-    <div style="max-width:480px;margin:40px auto;">
-      <h1 style="margin:0 0 6px;">Welcome to Elevate</h1>
-      <p class="muted" style="margin:0 0 24px;">A workforce-readiness companion that helps young people bridge the gap between education and employment.</p>
+    <div class="hero">
+      <h1>Welcome to Elevate</h1>
+      <p class="lead">A workforce-readiness companion that helps young people bridge the gap between education and employment.</p>
+    </div>
+    <div style="max-width:480px;margin:0 auto;">
       <div class="card" style="margin-bottom:16px;">
         <h2 style="margin:0 0 14px;">Sign in</h2>
         <form id="login-form" style="display:flex;flex-direction:column;gap:10px;">
