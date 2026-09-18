@@ -25,11 +25,10 @@ jobs:
           fi
           echo "render.yaml present"
       - name: Deploy to Render
-        uses: render/deploy-action@v1
+        uses: JorgeLNJunior/render-deploy@v1.5.0
         with:
-          repo: ${{ github.repository }}
-          branch: ${{ github.ref_name }}
-          service: elevate-backend
-          token: ${{ secrets.RENDER_API_KEY }}
-          wait: 'true'
-          timeout: '300'
+          service_id: ${{ secrets.RENDER_SERVICE_ID }}
+          api_key: ${{ secrets.RENDER_API_KEY }}
+          clear_cache: false
+          wait_deploy: true
+          github_deployment: false
