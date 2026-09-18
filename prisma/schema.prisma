@@ -1,0 +1,198 @@
+// Elevate workforce-readiness platform database schema
+// Covers: users, career pathways, scenarios, skills, progress, portfolio, feedback
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  displayName   String?
+  bio           String?
+  avatarUrl     String?
+  ageGroup      String?   // e.g. "16-19", "20-24"
+  location      String?
+  language      String    @default("en")
+  accessibility AccessibilityPreferences? @relation(fields: [accessibilityId], references: [id])
+  accessibilityId String?   @unique
+  interests     String[]  // career interest tags
+  goals         String[]
+  skills        Skill[]   @relation("userSkills")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  careerPathways  CareerPathway[]
+  scenarioSessions ScenarioSession[]
+  portfolios      Portfolio[]
+  recommendations Recommendation[]
+  feedbacks      Feedback[]
+  progress       ProgressEntry[]
+  integrations   Integration[]
+
+  @@index([email])
+}
+
+model AccessibilityPreferences {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  screenReader          Boolean  @default(false)
+  keyboardNavigation    Boolean  @default(true)
+  fontSize              String   @default("medium") // small, medium, large, xlarge
+  highContrast           Boolean  @default(false)
+  captions              Boolean  @default(false)
+  transcripts            Boolean  @default(false)
+  reducedMotion         Boolean  @default(false)
+  simpleLanguage         Boolean  @default(false)
+  userIdUser            User     @relation(fields: [userId], references: [id])
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  category    String   // communication, teamwork, problem-solving, adaptability, time-management
+  description String?
+  users       User[]   @relation("userSkills")
+  scenarios   ScenarioSkill[]
+}
+
+model CareerPathway {
+  id          String    @id @default(cuid())
+  name        String
+  industry    String
+  description String?
+  level       String    @default("entry") // entry, mid, senior
+  skills      String[]
+  scenarios   Scenario[]
+  users       User[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Scenario {
+  id            String          @id @default(cuid())
+  title         String
+  description   String
+  industry      String
+  difficulty    String          @default("beginner") // beginner, intermediate, advanced
+  category      String          // interview, meeting, teamwork, communication, problem-solving, conflict-resolution, customer-service
+  prompt        String
+  options       Json            // multiple-choice options
+  correctAnswer String?
+  tips          String[]
+  skills        ScenarioSkill[]
+  pathways      CareerPathway[] @relation
+  feedbacks     Feedback[]
+  sessions      ScenarioSession[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([industry])
+  @@index([category])
+  @@index([difficulty])
+}
+
+model ScenarioSkill {
+  scenarioId String
+  skillId    String
+  weight     Int      @default(1)
+  scenario   Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  skill      Skill    @relation(fields: [skillId], references: [id])
+  @@id([scenarioId, skillId])
+}
+
+model ScenarioSession {
+  id            String    @id @default(cuid())
+  userId        String
+  scenarioId    String
+  userChoice   String?
+  correct      Boolean?
+  timeTakenSec  Int?
+  aiFeedback    String?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id])
+  scenario     Scenario  @relation(fields: [scenarioId], references: [id])
+  feedback     Feedback?
+
+  @@index([userId])
+  @@index([scenarioId])
+}
+
+model Feedback {
+  id            String    @id @default(cuid())
+  sessionId     String    @unique
+  whatWentWell  String
+  whatToImprove String
+  nextSteps     String
+  retryAdvice   String?
+  score         Float?
+  createdAt     DateTime  @default(now())
+  session       ScenarioSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model ProgressEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  skillId   String
+  score     Float
+  date      DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  skill     Skill    @relation(fields: [skillId], references: [id])
+
+  @@index([userId, skillId])
+  @@index([date])
+}
+
+model Portfolio {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  type        String   // scenario, certificate, project, qualification
+  evidenceUrl String?
+  skillIds    String[]
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isPublic])
+}
+
+model Recommendation {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String   // scenario, skill, pathway
+  targetId      String
+  reason        String
+  priority      Int      @default(1)
+  dismissed     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, dismissed])
+}
+
+model Integration {
+  id            String   @id @default(cuid())
+  userId        String
+  provider      String   // github, linkedin, cv
+  externalId    String?
+  tokenEncrypted String?
+  metadata      Json?
+  syncedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
