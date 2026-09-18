@@ -45,12 +45,12 @@ function local(path, options) {
   const startedMatch = path.match(/^\/scenarios\/(.+)\/start$/);
   if (method === "POST" && startedMatch) {
     const id = decodeURIComponent(startedMatch[1]);
-    return { success: true, data: { session: { id: "local-" + Date.now() }, scenarioId: id };
+    return { success: true, data: { session: { id: "local-" + Date.now() }, scenarioId: id } };
   }
   if (method === "POST" && path.endsWith("/complete")) {
     const scenario = localGetScenario(body.scenarioId);
     const feedback = localFeedback(scenario, body.userChoice);
-    return { success: true, data: { sessionId: "local-" + Date.now(), feedback };
+    return { success: true, data: { sessionId: "local-" + Date.now(), feedback } };
   }
   return { success: true, data: null };
 }
