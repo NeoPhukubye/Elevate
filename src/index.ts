@@ -31,12 +31,15 @@ const limiter = rateLimit({
 app.use(limiter);
 
 let dbConnected = false;
+let dbFatal = false;
 
 app.get("/health", async (_req, res) => {
   if (dbConnected) {
     res.json({ success: true, status: "ok", database: "connected" });
+  } else if (dbFatal) {
+    res.status(503).json({ success: false, status: "degraded", database: "misconfigured" });
   } else {
-    res.status(503).json({ success: false, status: "degraded", database: "disconnected" });
+    res.status(503).json({ success: false, status: "degraded", database: "connecting" });
   }
 });
 
@@ -55,19 +58,34 @@ app.use("/api/*", (_req, _res, next) => {
 
 app.use(errorHandler);
 
+function isFatalDbError(error: unknown) {
+  const msg = String(error instanceof Error ? error.message : error || "");
+  return (
+    msg.includes("must start with the protocol") ||
+    msg.includes("Error validating datasource") ||
+    msg.includes("P1012")
+  );
+}
+
 async function connectDb() {
   if (!env.DATABASE_URL) {
     console.log("No DATABASE_URL set — running without database");
+    dbFatal = true;
     return;
   }
   try {
     await prisma.$connect();
     await prisma.$queryRaw`SELECT 1`;
     dbConnected = true;
+    dbFatal = false;
     console.log("Database connected");
   } catch (error) {
     console.error("Database connection failed:", error);
     dbConnected = false;
+    if (isFatalDbError(error)) {
+      dbFatal = true;
+      console.error("FATAL: DATABASE_URL is invalid. Fix it in the Render dashboard and redeploy.");
+    }
   }
 }
 
@@ -82,10 +100,10 @@ async function main() {
   // Connect to DB in background (non-blocking)
   await connectDb();
 
-  // Reconnect loop for transient failures
-  if (!dbConnected) {
+  // Reconnect loop only for transient failures
+  if (!dbConnected && !dbFatal) {
     const retry = setInterval(async () => {
-      if (dbConnected) { clearInterval(retry); return; }
+      if (dbConnected || dbFatal) { clearInterval(retry); return; }
       await connectDb();
     }, 5000);
     server.on("close", () => clearInterval(retry));
