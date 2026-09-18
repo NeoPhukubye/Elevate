@@ -1,5 +1,9 @@
 # Render.com deployment configuration for the Elevate backend
 # Docs: https://render.com/docs/yaml-spec
+#
+# Database: dpg-damhpln40ujc73b08oeg-a (Elevate-db)
+# Set DATABASE_URL in the Render dashboard to the connection string of
+# dpg-damhpln40ujc73b08oeg-a (Settings -> Database -> Connection Info).
 
 databases:
   - name: elevate-db
