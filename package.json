@@ -7,6 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "build:frontend": "echo 'Frontend is static - no build step required'",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:seed": "tsx prisma/seed.ts",
@@ -14,7 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "keywords": ["workforce", "readiness", "ai-coach", "career"],
-  "author": "neophukubye",
+  "author": "Neo Phukubye",
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
