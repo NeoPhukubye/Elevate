@@ -24,10 +24,12 @@ jobs:
             exit 1
           fi
           echo "render.yaml present"
-      - name: Trigger Render deploy
-        uses: rendercc/deploy-action@v1
+      - name: Deploy to Render
+        uses: render/deploy-action@v1
         with:
-          service: elevate-backend
           repo: ${{ github.repository }}
           branch: ${{ github.ref_name }}
+          service: elevate-backend
           token: ${{ secrets.RENDER_API_KEY }}
+          wait: 'true'
+          timeout: '300'
