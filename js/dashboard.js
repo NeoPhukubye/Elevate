@@ -1,5 +1,5 @@
 // Elevate frontend — progress dashboard
-import { authed } from "./api.js";
+import { api, authed } from "./api.js";
 import { escapeHtml, skillColor } from "./app.js";
 
 export async function loadProgress() {
@@ -11,8 +11,6 @@ export async function loadSkills() {
   const res = await api.get("/skills");
   return res.data;
 }
-
-import { api } from "./api.js";
 
 export function renderDashboard(progress, skills) {
   const skillMap = new Map((skills || []).map((s) => [s.id, s]));
