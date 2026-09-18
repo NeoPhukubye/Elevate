@@ -2,6 +2,7 @@
 import { loadScenarios, renderScenarioCard, renderScenarioDetail, submitChoice, renderFeedback } from "./scenarios.js";
 import { renderDashboard, loadSkills } from "./dashboard.js";
 import { openFeedbackPdf } from "./pdf.js";
+import { apiBase } from "./api.js";
 import { escapeHtml, store } from "./app.js";
 
 const app = document.getElementById("app");
@@ -33,27 +34,35 @@ async function renderPage(hash) {
     app.appendChild(renderDashboard(progress, skills));
   } else if (hash.startsWith("#/scenarios/")) {
     const id = hash.split("/")[2];
-    const scenario = await loadScenario(id);
-    app.innerHTML = "";
-    app.appendChild(renderScenarioDetail(scenario, onChoice));
+    try {
+      const scenario = await loadScenario(id);
+      app.innerHTML = "";
+      app.appendChild(renderScenarioDetail(scenario, onChoice));
+    } catch (e) {
+      app.innerHTML = `<div class="card"><h2>Unable to load scenario</h2><p class="muted">${escapeHtml(e.message)}</p><p class="muted">Make sure the backend is running and ELEVATE_API_URL is set correctly.</p></div>`;
+    }
   } else {
-    const scenarios = await loadScenarios();
-    app.innerHTML = "";
-    const hero = document.createElement("div");
-    hero.className = "hero";
-    hero.innerHTML = `<h1>Welcome to Elevate</h1><p class="lead">A workforce-readiness companion that helps young people bridge the gap between education and employment.</p>`;
-    app.appendChild(hero);
-    const heading = document.createElement("h1");
-    heading.textContent = "Explore career scenarios";
-    app.appendChild(heading);
-    const sub = document.createElement("p");
-    sub.className = "lead";
-    sub.textContent = "Practise realistic workplace situations in a safe environment and get AI feedback.";
-    app.appendChild(sub);
-    const grid = document.createElement("div");
-    grid.className = "grid two";
-    for (const s of scenarios) grid.appendChild(renderScenarioCard(s, (sid) => { location.hash = "#/scenarios/" + sid; }));
-    app.appendChild(grid);
+    try {
+      const scenarios = await loadScenarios();
+      app.innerHTML = "";
+      const hero = document.createElement("div");
+      hero.className = "hero";
+      hero.innerHTML = `<h1>Welcome to Elevate</h1><p class="lead">A workforce-readiness companion that helps young people bridge the gap between education and employment.</p>`;
+      app.appendChild(hero);
+      const heading = document.createElement("h1");
+      heading.textContent = "Explore career scenarios";
+      app.appendChild(heading);
+      const sub = document.createElement("p");
+      sub.className = "lead";
+      sub.textContent = "Practise realistic workplace situations in a safe environment and get AI feedback.";
+      app.appendChild(sub);
+      const grid = document.createElement("div");
+      grid.className = "grid two";
+      for (const s of scenarios) grid.appendChild(renderScenarioCard(s, (sid) => { location.hash = "#/scenarios/" + sid; }));
+      app.appendChild(grid);
+    } catch (e) {
+      app.innerHTML = `<div class="card"><h2>Unable to load scenarios</h2><p class="muted">${escapeHtml(e.message)}</p><p class="muted">Make sure the backend is running and ELEVATE_API_URL is set correctly.</p><p class="muted">API base: ${escapeHtml(apiBase())}</p></div>`;
+    }
   }
 }
 

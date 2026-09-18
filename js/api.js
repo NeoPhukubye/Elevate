@@ -1,8 +1,9 @@
 // Elevate frontend — API client
-// Talks to the backend at /api/v1 (works in dev and production via the GitHub Pages
-// site's API proxy when configured, or points at the Render URL directly).
+// Talks to the backend. Set window.ELEVATE_API_URL to your Render URL
+// (e.g. https://elevate-backend-0gv6.onrender.com) before loading the page.
+// Falls back to a sensible default for local development.
 
-const API_BASE = (window.ELEVATE_API_URL || "/api/v1").replace(/\/$/, "");
+const API_BASE = (window.ELEVATE_API_URL || "https://elevate-backend-0gv6.onrender.com").replace(/\/$/, "");
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -34,3 +35,5 @@ export function authHeaders() {
 export function authed(path, options = {}) {
   return request(path, { ...options, headers: { ...authHeaders(), ...(options.headers || {}) } });
 }
+
+export function apiBase() { return API_BASE; }
