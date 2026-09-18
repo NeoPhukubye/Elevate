@@ -1,6 +1,8 @@
 // Elevate frontend — router + entry point
 import { loadScenarios, loadScenario, renderScenarioCard, renderScenarioDetail, submitChoice, renderFeedback } from "./scenarios.js";
 import { renderDashboard, loadSkills, loadProgress } from "./dashboard.js";
+import { renderInterviewForm, startInterviewSession, renderInterviewChat } from "./interview-ui.js";
+import { renderInterviewReport, wireInterviewReport } from "./interview-report.js";
 import { openFeedbackPdf } from "./pdf.js";
 import { apiBase } from "./api.js";
 import { escapeHtml, store } from "./app.js";
@@ -10,6 +12,7 @@ const app = document.getElementById("app");
 function nav() {
   return `
     <nav class="links">
+      <a href="#/interview">Interview practice</a>
       <a href="#/scenarios">Scenarios</a>
       <a href="#/progress">Progress</a>
     </nav>
@@ -28,7 +31,14 @@ function renderNav() {
 
 async function renderPage(hash) {
   renderNav();
-  if (hash === "#/progress") {
+  if (hash === "#/interview") {
+    app.innerHTML = "";
+    app.appendChild(renderInterviewForm(onInterviewStart));
+  } else if (hash === "#/interview/practice") {
+    renderPractice();
+  } else if (hash === "#/interview/report") {
+    renderReport();
+  } else if (hash === "#/progress") {
     const [progress, skills] = await Promise.all([loadProgress(), loadSkills()]);
     app.innerHTML = "";
     app.appendChild(renderDashboard(progress, skills));
@@ -90,6 +100,40 @@ async function onChoice(scenarioId, choiceIndex) {
   } catch (e) {
     app.innerHTML = `<div class="card"><h2>Unable to submit your response</h2><p class="muted">${escapeHtml(e.message)}</p><a href="#/scenarios/${escapeHtml(scenarioId)}" class="btn ghost">Back to the scenario</a></div>`;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Interview practice flow
+// ---------------------------------------------------------------------------
+
+// The live session (answers, recognizer, timers) lives here rather than in the
+// URL, so a stray refresh starts a clean session instead of a half-loaded one.
+let session = null;
+let report = null;
+
+function onInterviewStart(jobTitle, jobDescription) {
+  session = startInterviewSession(jobTitle, jobDescription);
+  report = null;
+  location.hash = "#/interview/practice";
+}
+
+function renderPractice() {
+  if (!session) { location.hash = "#/interview"; return; }
+  app.innerHTML = "";
+  app.appendChild(renderInterviewChat(session, (finished) => {
+    report = finished;
+    session = null;
+    location.hash = "#/interview/report";
+  }, () => { session = null; location.hash = "#/interview"; }));
+}
+
+function renderReport() {
+  if (!report) { location.hash = "#/interview"; return; }
+  app.innerHTML = "";
+  app.appendChild(renderInterviewReport(report, {
+    onRestart: () => { report = null; location.hash = "#/interview"; },
+  }));
+  wireInterviewReport(app, report);
 }
 
 window.addEventListener("hashchange", () => renderPage(location.hash));
