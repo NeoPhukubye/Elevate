@@ -24,6 +24,14 @@ jobs:
             exit 1
           fi
           echo "render.yaml present"
+      - name: Validate Render secrets
+        env:
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          test -n "$RENDER_SERVICE_ID" || { echo "::error::RENDER_SERVICE_ID is not configured"; exit 1; }
+          test -n "$RENDER_API_KEY" || { echo "::error::RENDER_API_KEY is not configured"; exit 1; }
+          echo "Render secrets present"
       - name: Deploy to Render
         uses: JorgeLNJunior/render-deploy@v1.5.0
         with:
