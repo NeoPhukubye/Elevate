@@ -25,3 +25,13 @@ async function main() {
 
   const pathwayMap = Object.fromEntries(pathways.map((p) => [p.name, p.id]));
   console.log("Seeded skills:", skills.length, "pathways:", pathways.length);
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
