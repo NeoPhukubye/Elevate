@@ -3,6 +3,7 @@
 // headline score, filler-word breakdown, per-question detail and tips.
 
 import { escapeHtml } from "./app.js";
+import { highlightFillers } from "./interview.js";
 import { openInterviewPdf } from "./pdf.js";
 
 function meter(label, value, max = 100) {
@@ -67,6 +68,9 @@ function perAnswerCard(answer, index) {
             </ul>
           </div>
         </div>
+
+        <h4 class="mini-head" style="margin-top:18px;">Your answer, with fillers highlighted</h4>
+        <p class="transcript">${answer.transcript ? highlightFillers(answer.transcript) : `<em class="muted">No answer given.</em>`}</p>
 
         ${keywordMatch.missed.length
           ? `<p class="muted" style="margin:12px 0 0;">Job keywords not used: ${keywordMatch.missed.slice(0, 8).map((k) => `<span class="tag tag-miss">${escapeHtml(k)}</span>`).join(" ")}</p>`
