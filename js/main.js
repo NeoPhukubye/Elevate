@@ -111,8 +111,10 @@ async function onChoice(scenarioId, choiceIndex) {
 let session = null;
 let report = null;
 
-function onInterviewStart(jobTitle, jobDescription) {
+function onInterviewStart(jobTitle, jobDescription, mode, questionCount) {
   session = startInterviewSession(jobTitle, jobDescription);
+  if (mode) session.mode = mode;
+  if (questionCount) session.questions = session.questions.slice(0, questionCount);
   report = null;
   location.hash = "#/interview/practice";
 }

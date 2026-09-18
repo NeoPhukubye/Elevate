@@ -102,4 +102,231 @@ export function openFeedbackPdf(data, filename = "elevate-feedback.pdf") {
   const doc = generateFeedbackPdf(data);
   const url = doc.output("bloburl");
   window.open(url, "_blank", "noopener,noreferrer");
+}// ---------------------------------------------------------------------------
+// Interview report PDF
+// ---------------------------------------------------------------------------
+
+const PDF_INK = [109, 94, 252];
+
+function textBlock(doc, label, body, y, left = 40, width = 515) {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  let cursor = y;
+  if (cursor > pageHeight - 90) { doc.addPage(); cursor = 60; }
+  if (label) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(label, left, cursor);
+    cursor += 16;
+  }
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  const lines = doc.splitTextToSize(body || "—", width);
+  const pageHeightInner = pageHeight;
+  for (const line of lines) {
+    if (cursor > pageHeightInner - 50) { doc.addPage(); cursor = 60; }
+    doc.text(line, left, cursor);
+    cursor += 15;
+  }
+  return cursor + 8;
+}
+
+/**
+ * A multi-page interview report: scores, filler breakdown, job keyword match,
+ * tips, then every answer with its transcript and per-answer numbers.
+ */
+export function generateInterviewPdf(report) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 40;
+  const width = pageWidth - margin * 2;
+
+  // --- cover header -------------------------------------------------------
+  doc.setFillColor(...PDF_INK);
+  doc.rect(0, 0, pageWidth, 96, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(255, 255, 255);
+  doc.text("Elevate — Interview Report", margin, 44);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(report.jobTitle ? `Role: ${report.jobTitle}` : "Interview practice", margin, 64);
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, 80);
+
+  // --- headline score -----------------------------------------------------
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(34);
+  doc.text(String(report.overall), margin, 150);
+  doc.setFontSize(14);
+  doc.text(`/ 100 — ${report.band}`, margin + doc.getTextWidth(String(report.overall)) + 70, 150);
+
+  const answered = report.perAnswer.filter((a) => a.words >= 5);
+  const avg = (key) => (answered.length ? Math.round(answered.reduce((s, a) => s + a.scores[key], 0) / answered.length) : 0);
+
+  let y = 178;
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  const summaryLines = doc.splitTextToSize(report.summary || "", width);
+  doc.text(summaryLines, margin, y);
+  y += summaryLines.length * 15 + 16;
+
+  // --- score table --------------------------------------------------------
+  doc.autoTable({
+    startY: y,
+    head: [["Measure", "Score", "What it means"]],
+    body: [
+      ["Filler control", `${avg("fillerScore")}`, "How much of your speech was filler words."],
+      ["Answer structure", `${avg("structureScore")}`, "Example, personal action, outcome, a number."],
+      ["Pace & delivery", `${avg("paceScore")}`, report.hasSpeech ? "Words per minute out loud." : "Sentence length (typed answers)."],
+      ["Job relevance", `${avg("relevanceScore")}`, "How much of the job description's language you used."],
+    ],
+    styles: { fontSize: 10, cellPadding: 6 },
+    headStyles: { fillColor: PDF_INK, textColor: [255, 255, 255] },
+    columnStyles: { 0: { cellWidth: 110 }, 1: { cellWidth: 55 } },
+    margin: { left: margin, right: margin },
+  });
+  y = doc.lastAutoTable.finalY + 24;
+
+  // --- filler words -------------------------------------------------------
+  const totals = report.totals;
+  const fillerBody = totals.fillers === 0
+    ? "No filler words were used at all. That is a genuine strength — keep it."
+    : `You used ${totals.fillers} filler terms across ${totals.words} words (${totals.fillerRate}% of everything you said).` +
+      (totals.stutter ? ` You also repeated a word immediately after itself ${totals.stutter} time(s), a sign of rushing.` : "");
+  y = textBlock(doc, "Filler words", fillerBody, y);
+
+  if (totals.fillerCounts.length) {
+    doc.autoTable({
+      startY: y,
+      head: [["Filler / crutch word", "Type", "Times used", "Fix"]],
+      body: totals.fillerCounts.slice(0, 15).map((f) => [f.label, f.kind, String(f.count), FIXES[f.label] || "Cut it, or replace it with a short pause."]),
+      styles: { fontSize: 9, cellPadding: 5 },
+      headStyles: { fillColor: PDF_INK, textColor: [255, 255, 255] },
+      columnStyles: { 0: { cellWidth: 105 }, 1: { cellWidth: 55 }, 2: { cellWidth: 55 } },
+      margin: { left: margin, right: margin },
+    });
+    y = doc.lastAutoTable.finalY + 24;
+  }
+
+  // --- keyword match ------------------------------------------------------
+  y = textBlock(doc, "Match to the job description",
+    `Used ${report.keywordTotals.used.length} of ${report.keywords.length} keywords.` +
+    (report.keywordTotals.missed.length ? ` Missed: ${report.keywordTotals.missed.slice(0, 12).join(", ")}.` : " Nothing was missed.") +
+    (report.keywordTotals.used.length ? ` You did use: ${report.keywordTotals.used.slice(0, 12).join(", ")}.` : ""),
+    y);
+
+  // --- tips ---------------------------------------------------------------
+  if (report.tips.length) {
+    if (y > pageHeight - 120) { doc.addPage(); y = 60; }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Tips to fix next time", margin, y);
+    y += 18;
+    doc.autoTable({
+      startY: y,
+      head: [["Tip", "Do this instead"]],
+      body: report.tips.slice(0, 9).map((t) => [t.title, t.body]),
+      styles: { fontSize: 9, cellPadding: 5 },
+      headStyles: { fillColor: PDF_INK, textColor: [255, 255, 255] },
+      columnStyles: { 0: { cellWidth: 150 } },
+      margin: { left: margin, right: margin },
+    });
+    y = doc.lastAutoTable.finalY + 24;
+  }
+
+  // --- answers ------------------------------------------------------------
+  doc.addPage();
+  y = 60;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Your answers, question by question", margin, y);
+  y += 26;
+
+  report.perAnswer.forEach((answer, i) => {
+    if (y > pageHeight - 150) { doc.addPage(); y = 60; }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    const qLines = doc.splitTextToSize(`Q${i + 1}. ${answer.question}`, width);
+    doc.text(qLines, margin, y);
+    y += qLines.length * 15 + 6;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    const stats = `${answer.words} words · ${answer.filler.total} filler (${answer.fillerRate}%)` +
+      (answer.speakSeconds > 1 ? ` · ${answer.wpm} wpm · ${answer.speakSeconds}s` : ` · ${answer.avgSentence} words/sentence`) +
+      ` · ${answer.keywordMatch.used.length} job keywords`;
+    doc.text(stats, margin, y);
+    doc.setTextColor(0, 0, 0);
+    y += 18;
+
+    const transcript = answer.transcript || "(no answer given)";
+    const tLines = doc.splitTextToSize(transcript, width);
+    for (const line of tLines) {
+      if (y > pageHeight - 50) { doc.addPage(); y = 60; }
+      doc.text(line, margin, y);
+      y += 14;
+    }
+
+    if (answer.filler.counts.length) {
+      y += 4;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(`Filler words here: ${answer.filler.counts.map((f) => `${f.label} (${f.count}×)`).join(", ")}`, margin, y);
+      doc.setFont("helvetica", "normal");
+      y += 16;
+    }
+
+    doc.setDrawColor(220, 220, 220);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 22;
+  });
+
+  // --- footer on every page ----------------------------------------------
+  const pages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= pages; p += 1) {
+    doc.setPage(p);
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`Elevate — interview practice report · page ${p} of ${pages}`, margin, pageHeight - 24);
+  }
+
+  return doc;
+}
+
+// Short, actionable replacement per filler word.
+const FIXES = {
+  um: "Pause silently.", uh: "Pause silently.", er: "Pause silently.", erm: "Pause silently.",
+  hmm: "Say “let me think for a second”.", mmm: "Pause silently.", uhh: "Pause silently.", umm: "Pause silently.",
+  like: "Cut it, or say “such as” when giving an example.",
+  basically: "Cut it.", actually: "Cut it.", literally: "Cut it.", honestly: "Cut it.", obviously: "Cut it.",
+  just: "Cut it.", stuff: "Name the actual thing.", things: "Name the actual things.",
+  whatever: "Give the specific example.", etc: "Finish the list with one more real item.",
+  "kind of": "Say it plainly: “it was”.",
+  "sort of": "Say it plainly.",
+  maybe: "Commit: “I would”.",
+  probably: "Commit to the answer.",
+  "I guess": "Say “I would”.",
+  "I suppose": "State it as your answer.",
+  "I think": "Say “I did” or “I would”.",
+  "you know": "Cut it.", "I mean": "Cut it.", "or whatever": "Give the specific example.",
+};
+
+export function downloadInterviewPdf(report, filename = "elevate-interview.pdf") {
+  const doc = generateInterviewPdf(report);
+  doc.save(filename);
+}
+
+export function openInterviewPdf(report, filename = "elevate-interview.pdf") {
+  const doc = generateInterviewPdf(report);
+  const blob = doc.output("blob");
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank", "noopener,noreferrer");
+  // If the pop-up was blocked, fall back to a direct download so the button
+  // never does nothing.
+  if (!win) doc.save(filename);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
