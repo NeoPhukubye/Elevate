@@ -4,7 +4,7 @@ A workforce-readiness companion that helps young people bridge the gap between e
 
 Users explore career pathways, practise realistic workplace scenarios, receive AI feedback, track their progress, and build an evidence portfolio — all before securing their first opportunity.
 
-## Features
+Features
 
 - **Global Career Pathways** — explore careers and industries worldwide.
 - **Accessible & Disability-Friendly** — screen-reader support, keyboard navigation, adjustable text size, high contrast, captions/transcripts, reduced motion, and simple language.
