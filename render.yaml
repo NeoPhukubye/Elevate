@@ -1,15 +1,15 @@
 # Render.com deployment configuration for the Elevate backend
 # Docs: https://render.com/docs/yaml-spec
 #
-# Database: dpg-damhpln40ujc73b08oeg-a (Elevate-db)
-# Set DATABASE_URL in the Render dashboard to the connection string of
-# dpg-damhpln40ujc73b08oeg-a (Settings -> Database -> Connection Info).
-
-databases:
-  - name: elevate-db
-    databaseName: elevate
-    plan: free
-    ipAllowList: []
+# IMPORTANT: The PostgreSQL database already exists as
+#   dpg-damhpln40ujc73b08oeg-a  (name: Elevate-db)
+#
+# Do NOT let render.yaml create a new database. In the Render dashboard,
+# set DATABASE_URL on the web service to the INTERNAL connection string of
+# dpg-damhpln40ujc73b08oeg-a:
+#   Settings -> Environment -> DATABASE_URL -> paste connection string
+#   (Database -> dpg-damhpln40ujc73b08oeg-a -> Settings -> Connection Info
+#    -> Internal Connection String)
 
 services:
   - type: web
@@ -23,7 +23,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        database: elevate-db
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: AI_PROVIDER
