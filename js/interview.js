@@ -46,7 +46,7 @@ const FILLERS = [
   { word: "think", label: "I think", kind: "hedge", phrase: ["i", "think"] },
   { word: "know", label: "you know", kind: "crutch", phrase: ["you", "know"] },
   { word: "mean", label: "I mean", kind: "crutch", phrase: ["i", "mean"] },
-  { word: "whatever", label: "or whatever", kind: "vague", phrase: ["or", "whatever"] },
+  { word: "or", label: "or whatever", kind: "vague", phrase: ["or", "whatever"] },
 ];
 
 const KIND_LABELS = {
@@ -484,16 +484,21 @@ const FILLER_SWAPS = {
   "or whatever": "give the specific example",
 };
 
-export function buildTips(metrics, scores, keywordMatch) {
+export function buildTips(metrics, scores, keywordMatch, counts = null) {
   const tips = [];
   const { filler, words, structure, avgSentence, wpm } = metrics;
 
-  for (const item of filler.counts.slice(0, 4)) {
+  // Tips are aggregated across the whole interview by the caller, so use the
+  // interview-wide tally rather than this single answer's count — otherwise the
+  // tip and the report's own habit table disagree on the same word.
+  const overall = counts || filler.counts;
+
+  for (const item of overall.slice(0, 4)) {
     const swap = FILLER_SWAPS[item.label] || "cut it or replace it with a pause";
     tips.push({
       kind: item.kind,
       title: `“${item.label}” — ${item.count}×`,
-      body: `You said “${item.label}” ${item.count} time${item.count === 1 ? "" : "s"}. Instead: ${swap}.`,
+      body: `You said “${item.label}” ${item.count} time${item.count === 1 ? "" : "s"} across the interview. Instead: ${swap}.`,
     });
   }
 
@@ -715,11 +720,23 @@ export function buildReport(jobTitle, jobDescription, answers) {
     highlights: skillHighlights(answers, jobDescription),
   };
 
-  report.tips = report.perAnswer.flatMap((a) => a.tips);
   report.overall = answered.length
     ? Math.round(mean(answered.map((a) => a.scores.overall)))
     : 0;
   report.band = report.overall >= 80 ? "Strong" : report.overall >= 65 ? "Developing" : report.overall >= 50 ? "Needs work" : "Early";
+
+  // Build the tips once from the interview-wide totals, so a habit repeated
+  // across four answers is one tip carrying the true count rather than four
+  // separate tips that each under-report it.
+  const shapeSource = answered.reduce((best, a) => (a.words > (best ? best.words : 0) ? a : best), null) || perAnswer[0];
+  report.tips = shapeSource
+    ? buildTips(
+        { ...shapeSource, filler: combinedFiller },
+        shapeSource.scores,
+        { used: report.keywordTotals.used, missed: report.keywordTotals.missed },
+        combinedFiller.counts,
+      )
+    : [];
 
   report.summary = buildSummary(report);
   return report;
