@@ -1,18 +1,18 @@
 :root {
-  --bg: #faf7f2;
-  --bg-soft: #f3ece3;
-  --card: #ffffff;
-  --text: #1f2a37;
-  --text-soft: #5a6673;
-  --primary: #6d5efc;
-  --primary-dark: #5648d4;
+  --bg: #0f1117;
+  --bg-soft: #1a1d27;
+  --card: #1e2230;
+  --text: #e6e8ee;
+  --text-soft: #9aa3b2;
+  --primary: #8b7bff;
+  --primary-dark: #6d5efc;
   --accent: #f5a623;
   --success: #2fae73;
   --warning: #e8a33d;
   --danger: #e0645e;
-  --border: #e6dfd6;
+  --border: #2a2f3d;
   --radius: 16px;
-  --shadow: 0 8px 30px -12px rgba(31, 42, 55, 0.18);
+  --shadow: 0 8px 30px -12px rgba(0, 0, 0, 0.5);
   --font: "OpenDyslexic", system-ui, -apple-system, sans-serif;
 }
 
@@ -59,14 +59,14 @@ button { font-family: inherit; cursor: pointer; }
 .app { min-height: 100vh; display: flex; flex-direction: column; }
 
 header.nav {
-  background: var(--card);
+  background: var(--bg-soft);
   color: var(--text);
   padding: 16px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border);
-  box-shadow: 0 2px 12px -6px rgba(31, 42, 55, 0.12);
+  box-shadow: 0 2px 12px -6px rgba(0, 0, 0, 0.4);
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -113,7 +113,7 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 32px 24
 .skill-bar { height: 12px; background: var(--border); border-radius: 999px; overflow: hidden; }
 .skill-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); }
 
-.tag { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #eef0ff; color: #4338ca; font-size: 0.8rem; margin: 2px 4px 2px 0; }
+.tag { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #2d2440; color: #b8a9ff; font-size: 0.8rem; margin: 2px 4px 2px 0; }
 
 .muted { color: var(--text-soft); }
 
