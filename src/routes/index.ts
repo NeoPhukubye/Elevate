@@ -2,7 +2,7 @@ import { Router } from "express";
 import { register, login, getCurrentUser, updateAccessibility, updateInterests, updateGoals } from "../services/auth";
 import { listScenarios, getScenario, startScenario, completeScenario, getUserSessions, getSkillProgress, getSkills } from "../services/scenario";
 import { listPortfolio, addPortfolioItem, updatePortfolioVisibility, generateRecommendations, listRecommendations, dismissRecommendation } from "../services/portfolio";
-import { authenticate } from "../middleware/auth";
+import authenticate, { AuthenticatedRequest } from "../middleware/auth";
 
 const router = Router();
 
@@ -27,7 +27,7 @@ router.post("/auth/login", async (req, res, next) => {
   }
 });
 
-router.get("/auth/me", authenticate, async (req, res, next) => {
+router.get("/auth/me", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const user = await getCurrentUser(req.user!.id);
     res.json({ success: true, data: user });
@@ -59,7 +59,7 @@ router.get("/scenarios/:id", async (req, res, next) => {
   }
 });
 
-router.post("/scenarios/:id/start", authenticate, async (req, res, next) => {
+router.post("/scenarios/:id/start", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const { userChoice, timeTakenSec } = req.body;
     const result = await startScenario(req.user!.id, req.params.id, userChoice, timeTakenSec);
@@ -69,7 +69,7 @@ router.post("/scenarios/:id/start", authenticate, async (req, res, next) => {
   }
 });
 
-router.post("/sessions/:sessionId/complete", authenticate, async (req, res, next) => {
+router.post("/sessions/:sessionId/complete", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const { scenarioId, userChoice, timeTakenSec } = req.body;
     const result = await completeScenario(req.user!.id, req.params.sessionId, scenarioId, userChoice, timeTakenSec);
@@ -79,7 +79,7 @@ router.post("/sessions/:sessionId/complete", authenticate, async (req, res, next
   }
 });
 
-router.get("/sessions", authenticate, async (req, res, next) => {
+router.get("/sessions", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const sessions = await getUserSessions(req.user!.id);
     res.json({ success: true, data: sessions });
@@ -89,7 +89,7 @@ router.get("/sessions", authenticate, async (req, res, next) => {
 });
 
 // Progress
-router.get("/progress", authenticate, async (req, res, next) => {
+router.get("/progress", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const progress = await getSkillProgress(req.user!.id);
     res.json({ success: true, data: progress });
@@ -108,7 +108,7 @@ router.get("/skills", async (req, res, next) => {
 });
 
 // Portfolio
-router.get("/portfolio", authenticate, async (req, res, next) => {
+router.get("/portfolio", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const items = await listPortfolio(req.user!.id);
     res.json({ success: true, data: items });
@@ -117,7 +117,7 @@ router.get("/portfolio", authenticate, async (req, res, next) => {
   }
 });
 
-router.post("/portfolio", authenticate, async (req, res, next) => {
+router.post("/portfolio", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const item = await addPortfolioItem(req.user!.id, req.body);
     res.json({ success: true, data: item });
@@ -126,7 +126,7 @@ router.post("/portfolio", authenticate, async (req, res, next) => {
   }
 });
 
-router.patch("/portfolio/:id/visibility", authenticate, async (req, res, next) => {
+router.patch("/portfolio/:id/visibility", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const item = await updatePortfolioVisibility(req.params.id, req.user!.id, req.body.isPublic);
     res.json({ success: true, data: item });
@@ -136,7 +136,7 @@ router.patch("/portfolio/:id/visibility", authenticate, async (req, res, next) =
 });
 
 // Recommendations
-router.post("/recommendations/generate", authenticate, async (req, res, next) => {
+router.post("/recommendations/generate", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const recs = await generateRecommendations(req.user!.id);
     res.json({ success: true, data: recs });
@@ -145,7 +145,7 @@ router.post("/recommendations/generate", authenticate, async (req, res, next) =>
   }
 });
 
-router.get("/recommendations", authenticate, async (req, res, next) => {
+router.get("/recommendations", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const recs = await listRecommendations(req.user!.id);
     res.json({ success: true, data: recs });
@@ -154,7 +154,7 @@ router.get("/recommendations", authenticate, async (req, res, next) => {
   }
 });
 
-router.post("/recommendations/:id/dismiss", authenticate, async (req, res, next) => {
+router.post("/recommendations/:id/dismiss", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const rec = await dismissRecommendation(req.params.id, req.user!.id);
     res.json({ success: true, data: rec });
@@ -164,7 +164,7 @@ router.post("/recommendations/:id/dismiss", authenticate, async (req, res, next)
 });
 
 // Accessibility & preferences
-router.put("/accessibility", authenticate, async (req, res, next) => {
+router.put("/accessibility", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const prefs = await updateAccessibility(req.user!.id, req.body);
     res.json({ success: true, data: prefs });
@@ -173,7 +173,7 @@ router.put("/accessibility", authenticate, async (req, res, next) => {
   }
 });
 
-router.put("/interests", authenticate, async (req, res, next) => {
+router.put("/interests", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const user = await updateInterests(req.user!.id, req.body.interests);
     res.json({ success: true, data: user });
@@ -182,7 +182,7 @@ router.put("/interests", authenticate, async (req, res, next) => {
   }
 });
 
-router.put("/goals", authenticate, async (req, res, next) => {
+router.put("/goals", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const user = await updateGoals(req.user!.id, req.body.goals);
     res.json({ success: true, data: user });
