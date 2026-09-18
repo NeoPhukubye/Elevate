@@ -66,7 +66,7 @@ model Skill {
 
 model CareerPathway {
   id          String      @id @default(cuid())
-  name        String
+  name        String      @unique
   industry    String
   description String?
   level       String      @default("entry")
