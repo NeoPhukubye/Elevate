@@ -30,16 +30,24 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+let dbConnected = false;
+
 app.get("/health", async (_req, res) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
+  if (dbConnected) {
     res.json({ success: true, status: "ok", database: "connected" });
-  } catch {
+  } else {
     res.status(503).json({ success: false, status: "degraded", database: "disconnected" });
   }
 });
 
-app.use("/api/v1", apiRouter);
+// DB routes only work when connected
+app.use("/api/v1", (req, res, next) => {
+  if (!dbConnected && req.path !== "/health") {
+    res.status(503).json({ success: false, error: "Database not ready. Try again shortly." });
+    return;
+  }
+  next();
+}, apiRouter);
 
 app.use("/api/*", (_req, _res, next) => {
   next(new AppError("Endpoint not found", 404));
@@ -47,30 +55,58 @@ app.use("/api/*", (_req, _res, next) => {
 
 app.use(errorHandler);
 
-async function main() {
+async function connectDb() {
+  if (!env.DATABASE_URL) {
+    console.log("No DATABASE_URL set — running without database");
+    return;
+  }
   try {
     await prisma.$connect();
-    app.listen(env.PORT, () => {
-      console.log(`🚀 Elevate backend running on http://localhost:${env.PORT}`);
-      console.log(`   API: http://localhost:${env.PORT}/api/v1`);
-      console.log(`   AI Coach: ${env.AI_PROVIDER}/${env.AI_MODEL}`);
-    });
+    await prisma.$queryRaw`SELECT 1`;
+    dbConnected = true;
+    console.log("Database connected");
   } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
+    console.error("Database connection failed:", error);
+    dbConnected = false;
   }
+}
+
+async function main() {
+  // Start HTTP immediately so health checks pass during DB warmup
+  const server = app.listen(env.PORT, () => {
+    console.log(`🚀 Elevate backend running on http://localhost:${env.PORT}`);
+    console.log(`   API: http://localhost:${env.PORT}/api/v1`);
+    console.log(`   AI Coach: ${env.AI_PROVIDER}/${env.AI_MODEL}`);
+  });
+
+  // Connect to DB in background (non-blocking)
+  await connectDb();
+
+  // Reconnect loop for transient failures
+  if (!dbConnected) {
+    const retry = setInterval(async () => {
+      if (dbConnected) { clearInterval(retry); return; }
+      await connectDb();
+    }, 5000);
+    server.on("close", () => clearInterval(retry));
+  }
+
+  return server;
 }
 
 process.on("SIGINT", async () => {
   console.log("Shutting down gracefully...");
-  await prisma.$disconnect();
+  if (dbConnected) await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
   console.log("Shutting down gracefully...");
-  await prisma.$disconnect();
+  if (dbConnected) await prisma.$disconnect();
   process.exit(0);
 });
 
-main();
+main().catch((error) => {
+  console.error("Failed to start server:", error);
+  process.exit(1);
+});
