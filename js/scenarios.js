@@ -65,6 +65,7 @@ export async function submitChoice(scenarioId, choiceIndex, timeTakenSec) {
     userChoice: String(choiceIndex),
     timeTakenSec: timeTakenSec || 0,
   });
+  window.__debugStart = res;
   const sid = res.data.session.id;
   const result = await api.post("/sessions/" + sid + "/complete", {
     scenarioId,
